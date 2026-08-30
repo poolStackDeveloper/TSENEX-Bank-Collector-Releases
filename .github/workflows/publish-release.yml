@@ -1,0 +1,38 @@
+name: Publish TSENEX Bank Collector release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout release assets
+        uses: actions/checkout@v4
+
+      - name: Validate and publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = '${{ github.ref_name }}'
+          $assetDirectory = Join-Path 'dist' $tag
+          $package = Join-Path $assetDirectory 'TSENEX-Bank-Collector-win-x64.zip'
+          $checksum = Join-Path $assetDirectory 'TSENEX-Bank-Collector-win-x64.zip.sha256'
+
+          if (-not (Test-Path -LiteralPath $package)) { throw "Release package not found: $package" }
+          if (-not (Test-Path -LiteralPath $checksum)) { throw "Checksum file not found: $checksum" }
+
+          $expected = ((Get-Content -LiteralPath $checksum -Raw) -split '\s+')[0].Trim().ToLowerInvariant()
+          $actual = (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($expected -ne $actual) { throw "SHA-256 mismatch: expected=$expected actual=$actual" }
+
+          $notesPath = Join-Path $assetDirectory 'RELEASE_NOTES.md'
+          $notes = Get-Content -LiteralPath $notesPath -Raw -Encoding UTF8
+          gh release create $tag $package $checksum --verify-tag --title "TSENEX 법인계좌 수집기 $tag" --notes $notes
