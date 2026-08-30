@@ -1,4 +1,4 @@
-﻿## TSENEX Bank Collector v1.0.0
+## TSENEX Bank Collector v1.0.0
 
 - Windows x64 update package
 - Certificate passwords, ERP secrets, account settings, and bank data are excluded
